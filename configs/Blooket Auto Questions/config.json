@@ -1,0 +1,12 @@
+{
+    "active_config": "Blooket Auto Questions.json",
+    "start_playback_key": "F2",
+    "start_recording_key": "F6",
+    "stop_playback_key": "F3",
+    "stop_recording_key": "F8",
+    "record_delay": "0.1",
+    "playback_loops": "1",
+    "playback_interval": "0",
+    "playback_speed": "1",
+    "combobox_active_config": "default.json"
+}
