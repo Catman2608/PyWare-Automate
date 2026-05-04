@@ -6,38 +6,14 @@ F5:: ; Start macro
     SetTitleMatchMode, 
     SendMode, Input
     ; ---- Start of Macro ----
-    Sleep, 31
-    Send, {F6 up}
-    Sleep, 70
-    MouseMove, 858, 908
-    Sleep, 101
-    MouseMove, 862, 914
-    Sleep, 95
-    Click, 862, 914, Down left
-    Sleep, 93
-    Click, 862, 914, Up left
-    Sleep, 75
-    Click, 862, 914, Down left
-    Sleep, 81
-    Click, 862, 914, Up left
-    Sleep, 82
-    Click, 862, 914, Down left
-    Sleep, 86
-    Click, 862, 914, Up left
-    Sleep, 81
-    Click, 862, 914, Down left
-    Sleep, 84
-    Click, 862, 914, Up left
-    Sleep, 84
-    Click, 862, 914, Down left
-    Sleep, 81
-    Click, 862, 914, Up left
-    Sleep, 74
-    Click, 862, 914, Down left
-    Sleep, 89
-    Click, 862, 914, Up left
-    Sleep, 141
-    Send, {F8 down}
+    x := 800
+    y := 860
+    Loop, 10 {
+        Click, %x%, %y%
+        x += 5
+        y += 5
+        Sleep, 100
+    }
     ; ---- End of Macro ----
 return
 
