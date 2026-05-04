@@ -3,16 +3,15 @@ F5:: ; Start macro
     SetBatchLines, -1
     SetKeyDelay, -1
     SetMouseDelay, -1
-    SetTitleMatchMode, 
+    SetTitleMatchMode, 1
     SendMode, Input
-    ; ---- Start of Macro ----
-    x := 800
-    y := 860
-    Loop, 10 {
-        Click, %x%, %y%
-        x += 5
-        y += 5
-        Sleep, 100
+    ; PixelSearch and conditions test
+    PixelSearch, FoundX, FoundY, 745, 775, 1200, 800, 0x43F5F5, 15, Fast
+    if (ErrorLevel == 0) {
+        Click, %FoundX%, %FoundY%
+        Sleep, 500
+    } else {
+        Click, 1400, 900
     }
     ; ---- End of Macro ----
 return
