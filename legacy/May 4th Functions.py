@@ -1818,11 +1818,9 @@ class App(CTk):
         if line.lower() == "return":
             return True
 
-        # Function definitions / calls (currently unsupported)
-        # Matches "Func()" or "Func() {" but excludes flow control like "if (cond)"
-        if re.match(r"^[a-zA-Z_]\w*\(.*\)\s*\{?$", line):
-            if not re.match(r"^(if|while|loop|for)\b", line, re.IGNORECASE):
-                return True
+        # Function definitions (important)
+        if line.endswith("{") and "(" in line:
+            return True
 
         return False
     # Grab Screen And Apply Scale Factor
