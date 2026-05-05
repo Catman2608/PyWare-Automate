@@ -5,13 +5,233 @@ F5:: ; Start macro
     SetMouseDelay, -1
     SetTitleMatchMode, 1
     SendMode, Input
-    ; PixelSearch and conditions test
-    PixelSearch, FoundX, FoundY, 745, 775, 1200, 800, 0x43F5F5, 15, Fast
-    if (ErrorLevel == 0) {
-        Click, %FoundX%, %FoundY%
-        Sleep, 500
-    } else {
-        Click, 1400, 900
+    ; Settings (change this)
+    AmountOfType1 := 0 ; Amount of questions type A/B/C/D
+    AmountOfType2 := 0 ; Amount of questions type True/False
+    VietnameseMode := 0 ; Turn on this setting if you want the macro language to be Vietnamese
+    ; Start of macro
+    Loop, %AmountOfType1% {
+        Send, {Down}
+        Sleep, 100
+        Send, ^x
+        Sleep, 100
+        Send, {Up}
+        Sleep, 100
+        Send, {Right}
+        Sleep, 100
+        Send, ^v
+        Sleep, 100
+        Send, {Left}
+        Sleep, 100
+        ; Answer B - scroll 2 times
+        Loop, 2 {
+            Send, {Down}
+            Sleep, 85
+        }
+        Send, ^x
+        Loop, 2 {
+            Send, {Up}
+            Sleep, 85
+        }
+        Loop, 2 {
+            Send, {Right}
+            Sleep, 85
+        }
+        Send, ^v
+        Loop, 2 {
+            Send, {Left}
+            Sleep, 85
+        }
+        ; End of answer B
+        Loop, 3 {
+            Send, {Down}
+            Sleep, 75
+        }
+        Send, ^x
+        Loop, 3 {
+            Send, {Up}
+            Sleep, 75
+        }
+        Loop, 3 {
+            Send, {Right}
+            Sleep, 75
+        }
+        Send, ^v
+        Loop, 3 {
+            Send, {Left}
+            Sleep, 75
+        }
+        Loop, 4 {
+            Send, {Down}
+            Sleep, 60
+        }
+        Send, ^x
+        Loop, 4 {
+            Send, {Up}
+            Sleep, 60
+        }
+        Loop, 4 {
+            Send, {Right}
+            Sleep, 60
+        }
+        Send, ^v
+        Loop, 4 {
+            Send, {Left}
+            Sleep, 60
+        }
+        Loop, 5 {
+            Send, {Down}
+            Sleep, 40
+        }
+        Send, ^x
+        Loop, 5 {
+            Send, {Up}
+            Sleep, 60
+        }
+        Loop, 5 {
+            Send, {Right}
+            Sleep, 60
+        }
+        Send, ^v
+        Loop, 5 {
+            Send, {Left}
+            Sleep, 60
+        }
+        Loop, 6 {
+            Send, {Down}
+            Sleep, 50
+        }
+        Send, ^x
+        Loop, 6 {
+            Send, {Up}
+            Sleep, 50
+        }
+        Loop, 6 {
+            Send, {Right}
+            Sleep, 50
+        }
+        Send, ^v
+        Loop, 6 {
+            Send, {Left}
+            Sleep, 50
+        }
+        Sleep, 300
+        ; Final shop closeout
+        Loop, 7 {
+            Send, {Down}
+            Sleep, 50
+        }
+        Sleep, 300
+    }
+    Loop, %AmountOfType2% {
+        Click, 220, 200
+        Sleep, 50
+        Send, ^a
+        Sleep, 50
+        Send, ^c
+        Sleep, 50
+        Loop, 4 {
+            Send, {Enter}
+            Sleep, 50
+            Click, 220, 200
+            Sleep, 50
+            Send, ^v
+            Sleep, 50
+            Send, {Right}
+            Sleep, 50
+            ; Reset alignment if possible
+            Send, {Enter}
+            Sleep, 50
+            Send, {Up}
+            Sleep, 50
+            Loop, 10 {
+                Send, {Left}
+                Sleep, 50
+            }
+            Send, {Right}
+            Sleep, 50
+            Send, {Right}
+            Sleep, 50
+            ; VIETNAMESE OR ENGLISH
+            if (VietnameseMode == 1) {
+                Send, A. Đúng
+                Sleep, 50
+                Send, {Right}
+                Sleep, 50
+                Send, B. Sai
+                Sleep, 50
+            } else {
+                Send, A. True
+                Sleep, 50
+                Send, {Right}
+                Sleep, 50
+                Send, B. False
+                Sleep, 50
+            }
+            Sleep, 100
+            Send, {Left}
+            Sleep, 50
+            Send, {Left}
+            Sleep, 200
+        }
+        Send, {Down}
+        Sleep, 50
+        Send, ^x
+        Loop, 4 {
+            Send, {Up}
+            Sleep, 50
+            Send, {Right}
+            Sleep, 50
+        }
+        Sleep, 50
+        Send, {Right}
+        Sleep, 50
+        Send, ^v
+        Sleep, 50
+        Send, {Left}
+        Sleep, 50
+        Loop, 4 {
+            Send, {Down}
+            Sleep, 50
+            Send, {Left}
+            Sleep, 50
+        }
+        Send, {Down}
+        Sleep, 50
+        Send, {Shift down}
+        Loop, 3 {
+            Sleep, 50
+            Send, {Down}
+        }
+        Send, {Shift up}
+        Send, ^x
+        Loop, 5 {
+            Send, {Up}
+            Sleep, 50
+            Send, {Right}
+            Sleep, 50
+        }
+        Sleep, 50
+        Send, {Right}
+        Sleep, 50
+        Send, ^v
+        Sleep, 50
+        Send, {Left}
+        Sleep, 50
+        Send, ^c
+        Loop, 3 {
+            Sleep, 50
+            Send, {Down}
+            Send, ^v
+        }
+        Loop, 5 {
+            Send, {Left}
+            Sleep, 50
+            Send, {Down}
+            Sleep, 50
+        }
+        Sleep, 50
+        Send, {Down}
     }
     ; ---- End of Macro ----
 return
