@@ -6,8 +6,9 @@ F5:: ; Start macro
     SetTitleMatchMode, 2
     SendMode, Input
     ; ---- Start of Macro ----
-    PixelSearch, FoundX, FoundY, 700, 700, 1200, 800, 0x35F5F5, 5, Fast
-    MsgBox, %FoundX% %FoundY%
+    Send, {Ctrl down}
+    Sleep, 50
+    Send, {Ctrl up}
     ; ---- End of Macro ----
 return
 
