@@ -402,7 +402,6 @@ class App(CTk):
             "startcapturethread": self._cmd_startcapturethread,
             "stopcapturethread": self._cmd_stopcapturethread,
             "msgbox": self._cmd_msgbox,
-            "tooltip": self._cmd_tooltip,
             # "if" and "else" are handled structurally by execute_script/
             # _parse_if_node — they never reach the dispatch map.
         }
@@ -1556,12 +1555,7 @@ class App(CTk):
                     raise PlaybackError(f"Invalid TRY/CATCH block starting at: {actions[i]}")
                 try_nodes = self._parse_block(result["try_block"], 0, len(result["try_block"]))
                 catch_nodes = self._parse_block(result["catch_block"], 0, len(result["catch_block"]))
-                nodes.append({
-                    "kind": "try",
-                    "try": try_nodes,
-                    "catch": catch_nodes,
-                    "catch_var": result.get("catch_var"),
-                })
+                nodes.append({"kind": "try", "try": try_nodes, "catch": catch_nodes})
                 i = result["end_index"]
                 continue
 
@@ -1754,11 +1748,8 @@ class App(CTk):
             elif kind == "try":
                 try:
                     self._exec_block(node["try"], speed)
-                except PlaybackError as e:
+                except PlaybackError:
                     if node["catch"]:
-                        catch_var = node.get("catch_var")
-                        if catch_var:
-                            self.variables[catch_var] = str(e)
                         self._exec_block(node["catch"], speed)
                     else:
                         raise
@@ -1932,7 +1923,7 @@ class App(CTk):
             f"    {action}\n"
             f"    {description}"
         )
-        print(f"[PlaybackError] {action} -> {description}")
+        print(f"[PlaybackError] {action} → {description}")
         raise PlaybackError(msg)
     def release_all_keys(self):
         for key in list(self.held_keys):
@@ -2137,46 +2128,78 @@ class App(CTk):
         return None
     def _parse_try_catch(self, actions, start_index):
         """
-        Parses AHK-style try/catch blocks:
+        Parses:
 
         try {
             ...
         }
-        catch e {
+        catch {
             ...
         }
         """
-        header = actions[start_index].strip()
-        if not re.match(r"^try\b", header, re.IGNORECASE):
+
+        line = actions[start_index].strip().lower()
+
+        if not line.startswith("try"):
             return None
 
+        try_block = []
+        catch_block = []
+
         i = start_index + 1
-        if i < len(actions) and actions[i].strip() == "{":
+
+        # -------------------------
+        # Parse TRY block
+        # -------------------------
+        brace_depth = 1
+
+        while i < len(actions):
+            current = actions[i].strip()
+
+            if current == "{":
+                brace_depth += 1
+
+            elif current == "}":
+                brace_depth -= 1
+
+                if brace_depth == 0:
+                    i += 1
+                    break
+
+            try_block.append(actions[i])
             i += 1
 
-        try_block, i = self._collect_block_body(actions, i, len(actions))
-
-        catch_block = []
-        catch_var = None
-
+        # -------------------------
+        # Parse CATCH block
+        # -------------------------
         if i < len(actions):
-            catch_line = actions[i].strip()
-            match = re.match(r"^catch\b\s*([A-Za-z_]\w*)?", catch_line, re.IGNORECASE)
 
-            if match:
-                catch_var = match.group(1)
+            catch_line = actions[i].strip().lower()
+
+            if catch_line.startswith("catch"):
+
                 i += 1
+                brace_depth = 1
 
-                if i < len(actions) and actions[i].strip() == "{":
+                while i < len(actions):
+                    current = actions[i].strip()
+
+                    if current == "{":
+                        brace_depth += 1
+
+                    elif current == "}":
+                        brace_depth -= 1
+
+                        if brace_depth == 0:
+                            break
+
+                    catch_block.append(actions[i])
                     i += 1
-
-                catch_block, i = self._collect_block_body(actions, i, len(actions))
 
         return {
             "try_block": try_block,
             "catch_block": catch_block,
-            "catch_var": catch_var,
-            "end_index": i
+            "end_index": i + 1
         }
     def _init_builtin_variables(self):
         import sys
@@ -2500,85 +2523,6 @@ class App(CTk):
 
         except PlaybackError:
             raise
-        except Exception as e:
-            self.raise_error(action, str(e))
-    def _cmd_tooltip(self, action, speed):
-        """
-        Parse AHK syntax
-        ToolTip, Text, X, Y, ID
-        """
-        try:
-            _, args = action.split(",", 1)
-            parts = [self._handle_variable(p.strip()) for p in args.split(",")]
-            text = parts[0] if len(parts) > 0 else ""
-
-            x = int(float(parts[1])) if len(parts) > 1 and parts[1] else \
-                self.variables.get("MouseX", 0)
-
-            y = int(float(parts[2])) if len(parts) > 2 and parts[2] else \
-                self.variables.get("MouseY", 0)
-
-            tooltip_id = int(parts[3]) if len(parts) > 3 and parts[3] else 1
-
-            # -------------------------
-            # Destroy existing tooltip with same ID
-            # -------------------------
-
-            if not hasattr(self, "_tooltips"):
-                self._tooltips = {}
-
-            old_tooltip = self._tooltips.get(tooltip_id)
-
-            if old_tooltip:
-                try:
-                    old_tooltip.destroy()
-                except:
-                    pass
-
-            # -------------------------
-            # Create tooltip window
-            # -------------------------
-
-            tooltip = CTkToplevel()
-
-            tooltip.overrideredirect(True)
-            tooltip.attributes("-topmost", True)
-
-            # Classic AHK pale yellow
-            bg_color = "#FFFFE1"
-
-            tooltip.configure(fg_color=bg_color)
-
-            # -------------------------
-            # Tooltip label
-            # -------------------------
-
-            label = CTkLabel(
-                tooltip,
-                text=text,
-                fg_color=bg_color,
-                text_color="black",
-                corner_radius=0,   # IMPORTANT
-                padx=4,
-                pady=1,
-                font=("Segoe UI", 8)
-            )
-
-            label.pack()
-
-            # Thin border frame look
-            tooltip.configure(border_width=1)
-            tooltip.configure(border_color="#808080")
-
-            # Exact positioning like AHK
-            tooltip.geometry(f"+{x}+{y}")
-
-            # Save tooltip by ID
-            self._tooltips[tooltip_id] = tooltip
-
-        except PlaybackError:
-            raise
-
         except Exception as e:
             self.raise_error(action, str(e))
     # _cmd_if and _cmd_else have been removed.
