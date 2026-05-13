@@ -374,7 +374,6 @@ class App(CTk):
         self.comboboxes = {} # Save Combobox Widgets Here For Dynamic Updates
         self.switches = {} # Save Ctkswitch Widgets Here For Load/Save
         self.variables = {} # Save variables for AHK playback
-        self._tooltips = {}
 
         # Store Screen Width And Height To Use Later
         self.SCREEN_WIDTH = self.winfo_screenwidth()
@@ -553,7 +552,6 @@ class App(CTk):
         self.build_basic_tab(self.tabs.tab("Recording/Playback"))
         self.build_editor_tab(self.tabs.tab("Editor"))
         self.build_3_tab(self.tabs.tab("Unused"))
-        self._create_tooltip_pool()
 
         # Load Last Config, Reapply Hotkeys And Set Reset Values
         self.load_last_config()
@@ -839,11 +837,6 @@ class App(CTk):
                 return
         
         # Save Misc Settings And Set Status
-        try:
-            self.save_editor_to_ahk_file(name)
-        except Exception as e:
-            self.set_status(f"Error saving AHK: {e}")
-            return
         self.save_misc_settings()
         self._apply_hotkeys_from_vars()
         try:
@@ -1230,23 +1223,6 @@ class App(CTk):
 
         except Exception as e:
             self.set_status(f"Error saving AHK: {e}")
-    def save_editor_to_ahk_file(self, name=None):
-        """Write the current editor contents to the active config's recording.ahk."""
-        if not hasattr(self, "editor_textbox"):
-            return None
-
-        config_name = name if name is not None else self.config_var.get()
-        config_folder = os.path.join(CONFIG_DIR, config_name.replace(".json", ""))
-        os.makedirs(config_folder, exist_ok=True)
-
-        ahk_path = os.path.join(config_folder, "recording.ahk")
-        script = self.editor_textbox.get("1.0", "end-1c")
-
-        with open(ahk_path, "w", encoding="utf-8") as f:
-            f.write(script)
-
-        self.recording_file = ahk_path
-        return ahk_path
     def load_recording_file(self):
         """
         Load the recording file from the active config subfolder.
@@ -1302,11 +1278,6 @@ class App(CTk):
         except Exception as e:
             print("Error loading recording (load_recording_file):", e)
             self.recorded_actions = []
-    def _load_recording_file_and_signal(self, done_event):
-        try:
-            self.load_recording_file()
-        finally:
-            done_event.set()
     # Key Press Functions
     def _apply_hotkeys_from_vars(self):
         """Apply hotkey StringVars to the live hotkey attributes used by on_key_press."""
@@ -1353,11 +1324,6 @@ class App(CTk):
             elif pressed_key == self._normalize_hotkey_value(self.hotkey_stop_recording):
                 self.stop_recording()
             elif pressed_key == self._normalize_hotkey_value(self.hotkey_start) and not self.macro_running:
-                    try:
-                        self.save_editor_to_ahk_file()
-                    except Exception as e:
-                        self.set_status(f"Error saving AHK: {e}")
-                        return
                     self.macro_running = True
                     self.after(0, self.withdraw)
                     threading.Thread(target=self.start_playback, daemon=True).start() # This Will Start The Macro In A New Thread, Allowing The Gui To Remain Responsive
@@ -2565,12 +2531,11 @@ class App(CTk):
             py1 = int(y1 * scale)
             px2 = int(x2 * scale)
             py2 = int(y2 * scale)
-            
-            # --- Clamp region to frame bounds ---
-            px1 = max(0, min(px1, w - 1))
-            py1 = max(0, min(py1, h - 1))
 
-            px2 = max(0, min(px2, w))
+            # --- Clamp region to frame bounds ---
+            px2 = max(1, min(px2, w - 1))
+            py2 = max(1, min(py2, h - 1))
+            py1 = max(0, min(py1, h - 1))
             py2 = max(0, min(py2, h))
 
             if px2 <= px1 or py2 <= py1:
@@ -2581,25 +2546,16 @@ class App(CTk):
 
             region = frame[py1:py2, px1:px2, :3]
 
+            # macOS MSS may return RGB instead of BGR
+            if sys.platform == "darwin":
+                region = region[:, :, ::-1]
+
             rgb = self._parse_ahk_color(color)
             if rgb is None:
                 self.variables[out_x] = -1
                 self.variables[out_y] = -1
                 self.variables["ErrorLevel"] = 1
                 return
-
-            pos = self._find_first_pixel(region, rgb, tolerance)
-
-            if pos is not None:
-                fpx, fpy = pos
-
-                self.variables[out_x] = int((fpx + px1) / scale)
-                self.variables[out_y] = int((fpy + py1) / scale)
-                self.variables["ErrorLevel"] = 0
-            else:
-                self.variables[out_x] = -1
-                self.variables[out_y] = -1
-                self.variables["ErrorLevel"] = 1
 
             # --- Pixel search ---
             pos = self._find_first_pixel(region, rgb, tolerance)
@@ -2725,87 +2681,14 @@ class App(CTk):
             raise
         except Exception as e:
             self.raise_error(action, str(e))
-    def _create_tooltip_pool(self):
-        """Create the 20 reusable AHK tooltip windows hidden at startup."""
-        bg_color = "#FFFFFF"
-
-        for tooltip_id in range(1, 21):
-            if tooltip_id in self._tooltips:
-                continue
-
-            tooltip = tk.Toplevel(self)
-            tooltip.withdraw()
-            tooltip.overrideredirect(True)
-            tooltip.configure(bg=bg_color)
-            
-            if sys.platform == "darwin":
-                size = 13
-            else:
-                size = 9
-
-            label = tk.Label(
-                tooltip,
-                text="",
-                bg=bg_color,
-                fg="black",
-                bd=0,
-                padx=2,
-                pady=0,
-                font=("Segoe UI", size),
-                anchor="w",
-                justify="left"
-            )
-            label.pack(padx=0, pady=0, ipadx=0, ipady=0)
-
-            if sys.platform == "darwin":
-                try:
-                    tooltip.call(
-                        "tk::unsupported::MacWindowStyle",
-                        "style",
-                        tooltip._w,
-                        "help",
-                        "noActivates doesNotActivateOnClick"
-                    )
-                except:
-                    pass
-
-            self._tooltips[tooltip_id] = {
-                "window": tooltip,
-                "label": label
-            }
-
-    def _show_tooltip(self, tooltip_id, text, x, y):
-        tooltip_data = self._tooltips.get(tooltip_id)
-        if not tooltip_data:
-            return
-
-        tooltip = tooltip_data["window"]
-        label = tooltip_data["label"]
-
-        label.configure(text=text)
-        tooltip.update_idletasks()
-        tooltip.geometry(f"+{x}+{y}")
-        tooltip.deiconify()
-        tooltip.attributes("-topmost", True)
-        tooltip.lift()
-
-    def _hide_tooltip(self, tooltip_id):
-        tooltip_data = self._tooltips.get(tooltip_id)
-        if tooltip_data:
-            tooltip_data["window"].withdraw()
-
     def _cmd_tooltip(self, action, speed):
         """
         Parse AHK syntax
         ToolTip, Text, X, Y, ID
         """
         try:
-            if "," in action:
-                _, args = action.split(",", 1)
-                parts = [self._handle_variable(p.strip()) for p in args.split(",")]
-            else:
-                parts = [""]
-
+            _, args = action.split(",", 1)
+            parts = [self._handle_variable(p.strip()) for p in args.split(",")]
             text = parts[0] if len(parts) > 0 else ""
 
             x = int(float(parts[1])) if len(parts) > 1 and parts[1] else \
@@ -2816,13 +2699,76 @@ class App(CTk):
 
             tooltip_id = int(parts[3]) if len(parts) > 3 and parts[3] else 1
 
-            if not 1 <= tooltip_id <= 20:
-                raise ValueError("ToolTip ID must be between 1 and 20")
+            
+            # Destroy existing tooltip with same ID
+            
 
-            if text == "":
-                self.after(0, self._hide_tooltip, tooltip_id)
-            else:
-                self.after(0, self._show_tooltip, tooltip_id, text, x, y)
+            if not hasattr(self, "_tooltips"):
+                self._tooltips = {}
+
+            old_tooltip = self._tooltips.get(tooltip_id)
+
+            if old_tooltip:
+                try:
+                    old_tooltip.destroy()
+                except:
+                    pass
+
+            tooltip = tk.Toplevel()
+
+            tooltip.withdraw()
+
+            tooltip.overrideredirect(True)
+
+            bg_color = "#FFFFFF"
+
+            label = tk.Label(
+                tooltip,
+                text=text,
+                bg=bg_color,
+                fg="black",
+                bd=0,
+                padx=2,
+                pady=0,
+                font=("Segoe UI", 13),
+                anchor="w",
+                justify="left"
+            )
+
+            label.pack(
+                padx=0,
+                pady=0,
+                ipadx=0,
+                ipady=0
+            )
+
+            tooltip.configure(bg=bg_color)
+            tooltip.update_idletasks()
+
+            # Prevent macOS focus stealing — must be applied before deiconify
+            if sys.platform == "darwin":
+                try:
+                    # Mark as a non-activating floating panel
+                    tooltip.call(
+                        "tk::unsupported::MacWindowStyle",
+                        "style",
+                        tooltip._w,
+                        "help",
+                        "noActivates doesNotActivateOnClick"
+                    )
+                except:
+                    pass
+
+            tooltip.geometry(f"+{x}+{y}")
+
+            tooltip.deiconify()
+
+            # Re-assert topmost after deiconify (macOS requires this)
+            tooltip.attributes("-topmost", True)
+            tooltip.lift()
+
+            # Save tooltip by ID
+            self._tooltips[tooltip_id] = tooltip
 
         except PlaybackError:
             raise
@@ -3028,12 +2974,8 @@ class App(CTk):
         # print("Macro Status: Started Playback")
         self.macro_running = True
         # Load actions from file (handles both .ahk and .txt, skips headers/comments)
-        if threading.current_thread() is threading.main_thread():
-            self.load_recording_file()
-        else:
-            load_done = threading.Event()
-            self.after(0, self._load_recording_file_and_signal, load_done)
-            load_done.wait()
+        self.after(0, self.load_recording_file)
+        time.sleep(0.1)  # brief wait for the main-thread call to complete
 
         # ---- READ SETTINGS ----
         loops_raw = self.vars["playback_loops"].get().strip()
