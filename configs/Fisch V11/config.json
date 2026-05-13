@@ -1,5 +1,5 @@
 {
-    "enable_hotkeys": "off",
+    "enable_hotkeys": "on",
     "start_playback_key": "F5",
     "start_recording_key": "F6",
     "stop_playback_key": "F7",
